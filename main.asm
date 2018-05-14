@@ -61,19 +61,20 @@ DEB1_VAL  .set 0xFFFF  ; debouncing 1s(released)
 ;-------------------------------------------------------------------------------
 LOAD_INT:
 	bic #CPUOFF|SCG1|SCG0|OSCOFF, 0(SP) ; wake up
+	bic.b #0x01, &P2IE
 	mov.b P3IN, R4
 	mov.b R4, P4OUT
 	bit.b #LOAD_BUT, P1IN
 	jz LOAD_INT
-;---Simulating RETI-------------------------------------------------------------
-	pop SR
-    inc SP
-;-------------------------------------------------------------------------------
 	bic #LOAD_BUT, P1IFG  ; reset of interrupt flag
-	jmp SLEEP
+	bic #INC_BUT, P2IFG
+	mov #SLEEP, 2(SP)
+	RETI
 
 INC_INT:
 	bic #CPUOFF|SCG1|SCG0|OSCOFF, 0(SP) ; wake up
+	bic.b #0x01, &P2IE
+	EINT
 	mov.b #DEB0_VAL, R5
 DEBOUNCING0:
 	mov.b #DEB1_VAL, R6
@@ -85,14 +86,13 @@ INCREMENTATION:
 	DINT
 	dadc.b R4
 	mov.b R4, P4OUT
+	EINT
 EXIT_INC:
-;---Simulating RETI-------------------------------------------------------------
-	pop SR
-    inc SP
-;-------------------------------------------------------------------------------
 	bic #INC_BUT, P2IFG  ; reset of interrupt flag
-	jmp SLEEP
+	mov #SLEEP, 2(SP)
+	RETI
 DEBOUNCING1:
+	mov.b #DEB0_VAL, R5
 	bit.b #INC_BUT,P2IN
 	jz DEBOUNCING0
 	dec.b R6
@@ -102,6 +102,7 @@ DEBOUNCING1:
 ; Main loop
 ;-------------------------------------------------------------------------------
 SLEEP:
+	bis.b #0x01, &P2IE
 	bis #CPUOFF|SCG1|SCG0|OSCOFF|GIE, SR ;EI, LMP4
 	NOP
 
