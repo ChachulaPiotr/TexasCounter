@@ -32,8 +32,8 @@ StopWDT     mov.w   #WDTPW|WDTHOLD,&WDTCTL  ; Stop watchdog timer
 ;-------------------------------------------------------------------------------
 LOAD_BUT .set 0x01
 INC_BUT  .set 0x01  ;buttons
-DEB0_VAL  .set 0xFFFF  ; debouncing 0s(pressed)
-DEB1_VAL  .set 0xFFFF  ; debouncing 1s(released)
+DEB0_VAL  .set 0x0BFF  ; debouncing 0s(pressed)
+DEB1_VAL  .set 0x0BFF  ; debouncing 1s(released)
 
 ;-------------------------------------------------------------------------------
 ; Config
@@ -61,7 +61,6 @@ DEB1_VAL  .set 0xFFFF  ; debouncing 1s(released)
 ;-------------------------------------------------------------------------------
 LOAD_INT:
 	bic #CPUOFF|SCG1|SCG0|OSCOFF, 0(SP) ; wake up
-	bic.b #0x01, &P2IE
 	mov.b P3IN, R4
 	mov.b R4, P4OUT
 	bit.b #LOAD_BUT, P1IN
@@ -75,28 +74,28 @@ INC_INT:
 	bic #CPUOFF|SCG1|SCG0|OSCOFF, 0(SP) ; wake up
 	bic.b #0x01, &P2IE
 	EINT
-	mov.b #DEB0_VAL, R5
+	mov.w #DEB0_VAL, R5
 DEBOUNCING0:
-	mov.b #DEB1_VAL, R6
+	mov.w #DEB1_VAL, R6
 	bit.b #INC_BUT,P2IN
 	jnz DEBOUNCING1
-	dec.b R5
+	dec.w R5
 	jnz DEBOUNCING0
 INCREMENTATION:
 	DINT
 	dadc.b R4
 	mov.b R4, P4OUT
-	EINT
 EXIT_INC:
 	bic #INC_BUT, P2IFG  ; reset of interrupt flag
 	mov #SLEEP, 2(SP)
 	RETI
 DEBOUNCING1:
-	mov.b #DEB0_VAL, R5
+	mov.w #DEB0_VAL, R5
 	bit.b #INC_BUT,P2IN
 	jz DEBOUNCING0
-	dec.b R6
+	dec.w R6
 	jnz DEBOUNCING1
+	DINT
 	jmp EXIT_INC
 ;-------------------------------------------------------------------------------
 ; Main loop
