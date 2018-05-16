@@ -67,12 +67,19 @@ LOAD_INT:
 	jz LOAD_INT
 	bic #LOAD_BUT, P1IFG  ; reset of interrupt flag
 	bic #INC_BUT, P2IFG
-	mov #SLEEP, 2(SP)
+	bit #0x01, R7
+	jz EXIT
+	bic #0x01, R7
+	bis.b #0x01, &P2IE
+	pop.w R8
+	pop.w R8
+EXIT:
 	RETI
 
 INC_INT:
 	bic #CPUOFF|SCG1|SCG0|OSCOFF, 0(SP) ; wake up
 	bic.b #0x01, &P2IE
+	bis   #0x01, R7
 	EINT
 	mov.w #DEB0_VAL, R5
 DEBOUNCING0:
@@ -87,7 +94,8 @@ INCREMENTATION:
 	mov.b R4, P4OUT
 EXIT_INC:
 	bic #INC_BUT, P2IFG  ; reset of interrupt flag
-	mov #SLEEP, 2(SP)
+	bic #0x01, R7
+	bis.b #0x01, &P2IE
 	RETI
 DEBOUNCING1:
 	mov.w #DEB0_VAL, R5
@@ -101,9 +109,10 @@ DEBOUNCING1:
 ; Main loop
 ;-------------------------------------------------------------------------------
 SLEEP:
-	bis.b #0x01, &P2IE
+	;bis.b #0x01, &P2IE
 	bis #CPUOFF|SCG1|SCG0|OSCOFF|GIE, SR ;EI, LMP4
 	NOP
+	jmp SLEEP
 
 ;-------------------------------------------------------------------------------
 ; Stack Pointer definition
